@@ -1,8 +1,8 @@
 from django.db import models
 
-# ------------------------------------------------------
-# Cliente
-# ------------------------------------------------------
+# ========================================================
+# CLIENTE
+# ========================================================
 class ClienteLavanderia(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
@@ -18,9 +18,9 @@ class ClienteLavanderia(models.Model):
         return f"{self.nombre} {self.apellido}"
 
 
-# ------------------------------------------------------
-# Empleado
-# ------------------------------------------------------
+# ========================================================
+# EMPLEADO
+# ========================================================
 class EmpleadoLavanderia(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
@@ -36,9 +36,10 @@ class EmpleadoLavanderia(models.Model):
         return f"{self.nombre} {self.apellido} - {self.cargo}"
 
 
-# ------------------------------------------------------
-# Artículo de Ropa
-# ------------------------------------------------------
+# ========================================================
+# ARTÍCULO DE ROPA
+# Relación: Cliente (1) --- (∞) Artículos
+# ========================================================
 class ArticuloRopa(models.Model):
     tipo_prenda = models.CharField(max_length=100)
     color = models.CharField(max_length=50)
@@ -48,7 +49,7 @@ class ArticuloRopa(models.Model):
     costo_lavado_estandar = models.DecimalField(max_digits=5, decimal_places=2)
     estado_articulo = models.CharField(max_length=50)
     es_delicado = models.BooleanField(default=False)
-    
+
     cliente = models.ForeignKey(
         ClienteLavanderia,
         on_delete=models.SET_NULL,
@@ -57,12 +58,12 @@ class ArticuloRopa(models.Model):
     )
 
     def __str__(self):
-        return f"{self.tipo_prenda} ({self.color})"
+        return f"{self.tipo_prenda} - {self.color}"
 
 
-# ------------------------------------------------------
-# Máquina
-# ------------------------------------------------------
+# ========================================================
+# MÁQUINA (sin relaciones)
+# ========================================================
 class MaquinaLavanderia(models.Model):
     tipo_maquina = models.CharField(max_length=50)
     marca = models.CharField(max_length=100)
@@ -78,9 +79,12 @@ class MaquinaLavanderia(models.Model):
         return f"{self.tipo_maquina} {self.marca} {self.modelo}"
 
 
-# ------------------------------------------------------
-# Pedido
-# ------------------------------------------------------
+# ========================================================
+# PEDIDO
+# Relaciones:
+# Cliente (1) --- (∞) Pedido
+# Empleado (1) --- (∞) Pedido
+# ========================================================
 class PedidoLavanderia(models.Model):
     cliente = models.ForeignKey(
         ClienteLavanderia,
@@ -93,23 +97,26 @@ class PedidoLavanderia(models.Model):
     estado_pedido = models.CharField(max_length=50)
     total_pedido = models.DecimalField(max_digits=10, decimal_places=2)
     metodo_pago = models.CharField(max_length=50)
-    
+
     empleado_recepcion = models.ForeignKey(
         EmpleadoLavanderia,
         on_delete=models.SET_NULL,
         null=True,
         related_name="pedidos_recibidos"
     )
-    
+
     comentarios_cliente = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"Pedido #{self.id} - Cliente: {self.cliente}"
+        return f"Pedido #{self.id} - {self.cliente}"
 
 
-# ------------------------------------------------------
-# Detalle del Pedido
-# ------------------------------------------------------
+# ========================================================
+# DETALLE DEL PEDIDO
+# Relaciones:
+# Pedido (1) --- (∞) Detalle
+# Articulo (1) --- (∞) Detalle
+# ========================================================
 class DetallePedidoLavanderia(models.Model):
     pedido = models.ForeignKey(
         PedidoLavanderia,
@@ -132,9 +139,11 @@ class DetallePedidoLavanderia(models.Model):
         return f"Detalle {self.id} del Pedido {self.pedido.id}"
 
 
-# ------------------------------------------------------
-# Reporte Operacional
-# ------------------------------------------------------
+# ========================================================
+# REPORTE OPERACIONAL
+# Relación:
+# Empleado (1) --- (∞) Reportes
+# ========================================================
 class ReporteOperacional(models.Model):
     fecha_reporte = models.DateField()
     empleado = models.ForeignKey(
@@ -150,4 +159,4 @@ class ReporteOperacional(models.Model):
     consumo_agua_litros = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"Reporte {self.id} - {self.fecha_reporte}"
+        return f"Reporte #{self.id} - {self.fecha_reporte}"
