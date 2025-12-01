@@ -1,127 +1,153 @@
 from django.db import models
 
-
-class PadreMadre(models.Model):
-    id_padre_madre = models.AutoField(primary_key=True)
+# ------------------------------------------------------
+# Cliente
+# ------------------------------------------------------
+class ClienteLavanderia(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
+    telefono = models.CharField(max_length=20)
     email = models.CharField(max_length=100)
-    telefono_principal = models.CharField(max_length=20)
-    telefono_alternativo = models.CharField(max_length=20, null=True, blank=True)
-    direccion = models.CharField(max_length=255)
-    dni = models.CharField(max_length=20)
-    relacion_con_nino = models.CharField(max_length=50)
-    profesion = models.CharField(max_length=100)
+    direccion_recogida = models.CharField(max_length=255)
+    direccion_entrega = models.CharField(max_length=255)
+    fecha_registro = models.DateField()
+    notas_cliente = models.TextField(null=True, blank=True)
+    preferencias_lavado = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
 
 
-class GrupoNinos(models.Model):
-    id_grupo = models.AutoField(primary_key=True)
-    nombre_grupo = models.CharField(max_length=50, unique=True)
-    edad_minima = models.IntegerField()
-    edad_maxima = models.IntegerField()
-    id_personal_cargo = models.ForeignKey(
-        'PersonalGuarderia',
-        on_delete=models.SET_NULL,
-        null=True
-    )
-    num_ninos_actual = models.IntegerField()
-    capacidad_maxima = models.IntegerField()
-    descripcion_actividades = models.TextField()
-
-    def __str__(self):
-        return self.nombre_grupo
-
-
-class PersonalGuarderia(models.Model):
-    id_personal = models.AutoField(primary_key=True)
+# ------------------------------------------------------
+# Empleado
+# ------------------------------------------------------
+class EmpleadoLavanderia(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     cargo = models.CharField(max_length=50)
-    email = models.CharField(max_length=100)
-    telefono = models.CharField(max_length=20)
     fecha_contratacion = models.DateField()
     salario = models.DecimalField(max_digits=10, decimal_places=2)
-    dni = models.CharField(max_length=20)
-    certificaciones = models.TextField()
     turno = models.CharField(max_length=50)
+    telefono = models.CharField(max_length=20)
+    email = models.CharField(max_length=100)
+    dni = models.CharField(max_length=20)
 
     def __str__(self):
-        return f"{self.nombre} {self.apellido}"
+        return f"{self.nombre} {self.apellido} - {self.cargo}"
 
 
-class Nino(models.Model):
-    id_nino = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100)
-    apellido = models.CharField(max_length=100)
-    fecha_nacimiento = models.DateField()
-    genero = models.CharField(max_length=1)
-    id_padre_madre_principal = models.ForeignKey(
-        PadreMadre,
-        on_delete=models.CASCADE
-    )
-    alergias = models.TextField(null=True, blank=True)
-    necesidades_especiales = models.TextField(null=True, blank=True)
-
-    # Relación especial hacia nombre_grupo (unique)
-    grupo_asignado = models.ForeignKey(
-        GrupoNinos,
-        to_field='nombre_grupo',
-        db_column='grupo_asignado',
+# ------------------------------------------------------
+# Artículo de Ropa
+# ------------------------------------------------------
+class ArticuloRopa(models.Model):
+    tipo_prenda = models.CharField(max_length=100)
+    color = models.CharField(max_length=50)
+    material = models.CharField(max_length=50)
+    tamano = models.CharField(max_length=20)
+    instrucciones_especiales = models.TextField(null=True, blank=True)
+    costo_lavado_estandar = models.DecimalField(max_digits=5, decimal_places=2)
+    estado_articulo = models.CharField(max_length=50)
+    es_delicado = models.BooleanField(default=False)
+    
+    cliente = models.ForeignKey(
+        ClienteLavanderia,
         on_delete=models.SET_NULL,
-        null=True
+        null=True,
+        related_name="articulos"
     )
 
-    fecha_inscripcion = models.DateField()
+    def __str__(self):
+        return f"{self.tipo_prenda} ({self.color})"
+
+
+# ------------------------------------------------------
+# Máquina
+# ------------------------------------------------------
+class MaquinaLavanderia(models.Model):
+    tipo_maquina = models.CharField(max_length=50)
+    marca = models.CharField(max_length=100)
+    modelo = models.CharField(max_length=100)
+    capacidad_kg = models.DecimalField(max_digits=5, decimal_places=2)
+    estado_operativo = models.CharField(max_length=50)
+    ultima_revision = models.DateField()
+    num_serie = models.CharField(max_length=50)
+    es_lavadora = models.BooleanField(default=False)
+    es_secadora = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.nombre} {self.apellido}"
+        return f"{self.tipo_maquina} {self.marca} {self.modelo}"
 
 
-class ActividadGuarderia(models.Model):
-    id_actividad = models.AutoField(primary_key=True)
-    nombre_actividad = models.CharField(max_length=100)
-    descripcion = models.TextField()
-    horario = models.CharField(max_length=100)
-    duracion_minutos = models.IntegerField()
-    id_grupo = models.ForeignKey(
-        GrupoNinos,
-        on_delete=models.CASCADE
+# ------------------------------------------------------
+# Pedido
+# ------------------------------------------------------
+class PedidoLavanderia(models.Model):
+    cliente = models.ForeignKey(
+        ClienteLavanderia,
+        on_delete=models.CASCADE,
+        related_name="pedidos"
     )
-    material_requerido = models.TextField()
-    es_obligatoria = models.BooleanField()
-
-    def __str__(self):
-        return self.nombre_actividad
-
-
-class AsistenciaNino(models.Model):
-    id_asistencia = models.AutoField(primary_key=True)
-    id_nino = models.ForeignKey(Nino, on_delete=models.CASCADE)
-    fecha_asistencia = models.DateField()
-    hora_entrada = models.TimeField()
-    hora_salida = models.TimeField(null=True, blank=True)
-    estuvo_enfermo = models.BooleanField()
-    notas_dia = models.TextField(null=True, blank=True)
-    id_personal_registro = models.ForeignKey(PersonalGuarderia, on_delete=models.SET_NULL, null=True)
-
-    def __str__(self):
-        return f"Asistencia {self.id_asistencia} - Niño {self.id_nino_id}"
-
-
-class PagoMensualidad(models.Model):
-    id_pago = models.AutoField(primary_key=True)
-    id_nino = models.ForeignKey(Nino, on_delete=models.CASCADE)
-    fecha_pago = models.DateTimeField()
-    monto_pagado = models.DecimalField(max_digits=10, decimal_places=2)
-    concepto = models.CharField(max_length=100)
+    fecha_recepcion = models.DateTimeField()
+    fecha_entrega_estimada = models.DateField()
+    fecha_entrega_real = models.DateTimeField(null=True, blank=True)
+    estado_pedido = models.CharField(max_length=50)
+    total_pedido = models.DecimalField(max_digits=10, decimal_places=2)
     metodo_pago = models.CharField(max_length=50)
-    mes_correspondiente = models.DateField()
-    estado_pago = models.CharField(max_length=50)
-    fecha_vencimiento = models.DateField()
+    
+    empleado_recepcion = models.ForeignKey(
+        EmpleadoLavanderia,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="pedidos_recibidos"
+    )
+    
+    comentarios_cliente = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"Pago {self.id_pago} - Niño {self.id_nino_id}"
+        return f"Pedido #{self.id} - Cliente: {self.cliente}"
 
+
+# ------------------------------------------------------
+# Detalle del Pedido
+# ------------------------------------------------------
+class DetallePedidoLavanderia(models.Model):
+    pedido = models.ForeignKey(
+        PedidoLavanderia,
+        on_delete=models.CASCADE,
+        related_name="detalles"
+    )
+    articulo = models.ForeignKey(
+        ArticuloRopa,
+        on_delete=models.CASCADE,
+        related_name="detalles"
+    )
+    cantidad = models.IntegerField()
+    tipo_servicio = models.CharField(max_length=50)
+    costo_servicio_individual = models.DecimalField(max_digits=5, decimal_places=2)
+    subtotal_item = models.DecimalField(max_digits=10, decimal_places=2)
+    manchas_detectadas = models.TextField(null=True, blank=True)
+    instrucciones_item = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Detalle {self.id} del Pedido {self.pedido.id}"
+
+
+# ------------------------------------------------------
+# Reporte Operacional
+# ------------------------------------------------------
+class ReporteOperacional(models.Model):
+    fecha_reporte = models.DateField()
+    empleado = models.ForeignKey(
+        EmpleadoLavanderia,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="reportes"
+    )
+    num_pedidos_procesados = models.IntegerField()
+    kg_ropa_procesada = models.DecimalField(max_digits=10, decimal_places=2)
+    tiempo_inactividad_maquinas = models.IntegerField()
+    observaciones_turno = models.TextField(null=True, blank=True)
+    consumo_agua_litros = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"Reporte {self.id} - {self.fecha_reporte}"
